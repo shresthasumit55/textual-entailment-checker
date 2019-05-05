@@ -88,19 +88,26 @@ class Parser:
                 self.sentences.append(words)
                 self.elements.append(frame_elements)
                 index += 1
+        # print(self.sentences)
+        # print(self.frames)
+        # print(self.elements)
 
     def get_data(self, sentence):
-        words = nltk.word_tokenize(sentence)
+        words = nltk.word_tokenize(sentence.lower())
         sent = ' '.join(words)
         frames = []
         frame_element_list = []
-        for idx in self.index_dict[sent]:
-            frames.append(self.frames[idx])
-            frame_element_list.extend(self.elements[idx])
+        indexes = self.index_dict.get(sent)
+        if indexes:
+            for idx in indexes:
+                f = self.frames[idx]
+                if f not in frames:
+                    frames.append(f)
+                frame_ele = self.elements[idx]
+                if frame_ele not in frame_element_list:
+                    frame_element_list.append(frame_ele)
         return frames, frame_element_list
 
 
 parser = Parser()
-frame, fes = parser.get_data('those who recovered from sars might have permanent lung damage.')
-print(frame)
-print(fes)
+frame, fes = parser.get_data("Giulio Andreotti , Italy's foremost elder statesman , has survived many political crises during his controversial career.")
