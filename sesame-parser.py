@@ -1,5 +1,8 @@
-# CONLL 2009 format
 import os
+import nltk
+
+
+# CONLL 2009 format
 conll_format = {
     0: 'ID',
     1: 'FORM',
@@ -19,31 +22,85 @@ conll_format = {
 }
 
 
-def _iter_sents(in_file):
-    """
-    code taken from https://github.com/EmilStenstrom/conllu
-    """
-    buf = []
-    for line in in_file:
-        if line == "\n":
-            yield "".join(buf)[:-1]
-            buf = []
-        else:
-            buf.append(line)
-    if buf:
-        yield "".join(buf)
+class Parser:
+
+    def __init__(self):
+        self.sentences = []
+        self.frames = []
+        self.elements = []
+        self.index_dict = {}
+        self.load_data()
+
+    @staticmethod
+    def _iter_sents(in_file):
+        """
+        code taken from https://github.com/EmilStenstrom/conllu
+        """
+        buf = []
+        for line in in_file:
+            if line == "\n":
+                yield "".join(buf)[:-1]
+                buf = []
+            else:
+                buf.append(line)
+        if buf:
+            yield "".join(buf)
+
+    def load_data(self):
+        with open(os.path.join('data', 'predicted-args.conll'), 'r', encoding='utf-8') as data:
+            index = 0
+            for sentence in self._iter_sents(data):
+                words = []
+                # print(repr(sentence))
+                fe_flag = 0    # flag to track phrases
+                phrase = []
+                frame_elements = []
+                for token in sentence.split('\n'):
+                    formatted_token = {}
+                    fields = token.split('\t')
+                    for idx, field in enumerate(fields):
+                        formatted_token[conll_format[idx]] = field
+                    frame = formatted_token['PRED']
+                    target = formatted_token['FILLPRED'].split('.')[0]
+                    word = formatted_token['FORM']
+                    # lemma = formatted_token['PLEMMA']
+                    if not frame == '_':
+                        self.frames.append({frame: target})
+                    fe = formatted_token['APREDS'].split('-')
+                    if fe_flag:
+                        if not fe[0] == 'O':
+                            phrase.append(word)
+                        else:
+                            frame_elements.append({element: ' '.join(phrase)})
+                            fe_flag = 0
+                            phrase = []
+                    if fe[0] == 'B':
+                        fe_flag = 1
+                        element = fe[1]
+                        phrase.append(word)
+                    words.append(word)
+                sent = ' '.join(words)
+                if sent in self.index_dict.keys():
+                    value = self.index_dict[sent]
+                    value.append(index)
+                else:
+                    self.index_dict[sent] = [index]
+                self.sentences.append(words)
+                self.elements.append(frame_elements)
+                index += 1
+
+    def get_data(self, sentence):
+        words = nltk.word_tokenize(sentence)
+        sent = ' '.join(words)
+        frames = []
+        frame_element_list = []
+        for idx in self.index_dict[sent]:
+            frames.append(self.frames[idx])
+            frame_element_list.extend(self.elements[idx])
+        return frames, frame_element_list
 
 
-with open(os.path.join('data', 'predicted-args.conll'), 'r', encoding='utf-8') as data:
-    for sentence in _iter_sents(data):
-        # print(repr(sentence))
-        tokenList = []
-        for token in sentence.split('\n'):
-            formatted_token = {}
-            fields = token.split('\t')
-            for idx, field in enumerate(fields):
-                formatted_token[conll_format[idx]] = field
-            tokenList.append(formatted_token)
-        print(tokenList)
-
-
+parser = Parser()
+frame, fes = parser.get_data('those who recovered from sars might have permanent lung damage.')
+print(frame)
+print(fes)
