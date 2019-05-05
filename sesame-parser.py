@@ -78,6 +78,8 @@ class Parser:
                         fe_flag = 1
                         element = fe[1]
                         phrase.append(word)
+                    elif fe[0] == 'S':
+                        frame_elements.append({fe[1]: word})
                     words.append(word)
                 sent = ' '.join(words)
                 if sent in self.index_dict.keys():
@@ -110,4 +112,8 @@ class Parser:
 
 
 parser = Parser()
-frame, fes = parser.get_data("Giulio Andreotti , Italy's foremost elder statesman , has survived many political crises during his controversial career.")
+frame, fes = parser.get_data("This galaxy was dubbed the Sagittarius Dwarf galaxy ( as it , and the core of the Milky "
+                             "Way , lie in the constellation Sagittarius ) , and until recently , it held the record "
+                             "for the nearest galaxy , at about 70,000 light years away.")
+print(frame)
+print(fes)
